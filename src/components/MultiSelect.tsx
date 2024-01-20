@@ -1,13 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import useMultiSelect from "../hooks/useMultiSelect";
-enum Options {
-  Art = "🎨",
-  Education = "📚",
-  Sport = "🏀",
-  Games = "🎮",
-  Health = "🏥",
-  Science = "🔬",
-}
 
 const MultiSelect = () => {
   const {
@@ -18,66 +10,63 @@ const MultiSelect = () => {
     handleInputChange,
     handleKeyDown,
     toggleDropdown,
+    options,
   } = useMultiSelect();
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const handleOutsideClick = (e: any) => {
-    if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-      toggleDropdown();
-    }
-  };
-  
+  const handleOutsideClick = useCallback(
+    (event: MouseEvent) => {
+      if (
+        isOpen &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        toggleDropdown();
+      }
+    },
+    [isOpen, toggleDropdown]
+  );
+
   useEffect(() => {
-    const handleClickOutside = (event:any) => {
-      handleOutsideClick(event);
-    };
-  
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-  
+    document.addEventListener("mousedown", handleOutsideClick);
+
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleOutsideClick);
     };
-  }, [isOpen]);
+  }, [handleOutsideClick]);
+
+  const renderOptions = () => {
+    return options.map((option) => (
+      <div
+        key={option}
+        onClick={() => handleOptionClick(option)}
+        className={`option-item ${
+          selectedOptions.includes(option) ? "selected" : ""
+        }`}
+      >
+        {option}{" "}
+        {selectedOptions.includes(option) && (
+          <span className="check-icon">&#10003;</span>
+        )}
+      </div>
+    ));
+  };
 
   return (
-    <div className="multiselect-container">
+    <div className={`multiselect-container ${isOpen ? "open" : ""}`}>
       <input
         type="text"
         value={inputValue}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onClick={toggleDropdown}
-        placeholder="Select"
+        placeholder="Select or type"
       />
+      <div className="chevron">&#x2039;</div>
       {isOpen && (
         <div className="dropdown-options" ref={dropdownRef}>
-          {Object.keys(Options).map((optionKey) => {
-            const option = Options[optionKey as keyof typeof Options];
-            return (
-              <div
-                key={optionKey}
-                onClick={() => handleOptionClick(optionKey)}
-                className={
-                  selectedOptions.includes(optionKey)
-                    ? "option-item selected"
-                    : "option-item"
-                }
-              >
-                <span role="img" aria-label="Emoji">
-                  {option}
-                </span>{" "}
-                {optionKey}{" "}
-                {selectedOptions.includes(optionKey) && (
-                  <span className="check-icon">&#10003;</span>
-                )}
-              </div>
-            );
-          })}
+          {renderOptions()}
         </div>
       )}
     </div>
